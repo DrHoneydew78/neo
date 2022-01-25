@@ -1,10 +1,26 @@
 #!/bin/bash
 
+# Program "neo" displays digital rain effect in the terminal
+# Copyright (C) 2022  DrHoneydew78
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 Usage () {
 cat <<ENDOFUSAGE
 Usage: neo -h | -H
   -h        : Display usage and exit
-  -H        : Display extended usage help
+  -H        : Display extended help
 
 Usage: neo [-y set]... [[-s] color] [-t color] [[-n] number] [-g lag [-G lag]]
            [-d time -D time] [-l len -L len] [-T stab] [-b]
