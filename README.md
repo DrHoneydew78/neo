@@ -11,7 +11,10 @@ A pure\* bash script to generate the digital rain from The Matrix in your termin
 - Sane defaults based on terminal size!
 
 # Usage
-Clone the repo, then just run then `neo` script.  For basic usage, run `neo -h`.  For extended documentation, run `neo -H`.
+Clone the repo, then just run the `neo` script.
+
+For basic usage, run `neo -h`.\
+For extended documentation, run `neo -H`.
 
 Press the INT key (typically Ctrl-C) to break out of the program.
 
