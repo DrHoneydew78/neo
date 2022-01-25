@@ -23,7 +23,7 @@ Usage: neo -h | -H
   -H        : Display extended help
 
 Usage: neo [-y set]... [[-s] color] [-t color] [[-n] number] [-g lag [-G lag]]
-           [-d time -D time] [-l len -L len] [-T stab] [-b]
+           [-d time -D time] [-l len -L len] [-T stab] [-b] [-a delay]
   -y set    : Set of glyphs to include (see -H for glyph sets)
   -s color  : Spark color (see -H for color spec)
   -t color  : Tail color (see -H for color spec)
@@ -36,6 +36,7 @@ Usage: neo [-y set]... [[-s] color] [-t color] [[-n] number] [-g lag [-G lag]]
   -L len    : Max tail length
   -T stab   : Tail stability factor
   -b        : User alternate screen buffer
+  -a delay  : Artificial delay factor
 ENDOFUSAGE
 }
 
@@ -45,7 +46,7 @@ declare bof="$(tput sgr0)"
 Usage
 cat <<ENDOFHELP
 
-${bon}GENERAL${bof}
+${bon}PROGRAM DESCRIPTION${bof}
 
   This program generates the digital rain from The Matrix.  It is written almost
   entirely in bash, except for the use of tput for color codes and cursor
@@ -69,7 +70,21 @@ ${bon}GENERAL${bof}
   terminals with other locales were not tested and may affect glyph selection
   and encoding, but should mostly work.
 
-${bon}GLYPHS${bof}
+${bon}PROGRAM CONTROL${bof}
+
+  Currently the only way to stop the program is with the INT signal, typically
+  triggered by pressing Ctrl-C.
+
+  By default, the program will render rain to the primary screen buffer.  The
+  -b switch will change to the alternate screen buffer and render there,
+  preserving what's currently on the screen.
+  
+  By default, the program executes as fast as possible, which can be very fast
+  in some configurations.  Use the -a switch to introduce an artificial delay
+  after rendering every tick of the program.  The program simply counts a number
+  of noops equal to the delay specified after each tick is rendered.
+
+${bon}GLYPH SELECTION${bof}
   
   The spark and tail choose characters randomly from a set of glyphs that can
   be controlled with the -y switch.  Multiple -y switches can be passed to
@@ -86,7 +101,7 @@ ${bon}GLYPHS${bof}
     symbols - Pretty much all the printable symbols below ASCII 127
     kata    - A variety of half-width kata characters using Unicode
 
-${bon}COLORS${bof}
+${bon}COLOR OPTIONS${bof}
 
   You can use the -s and -t switches to set the spark and tail colors
   respectively.  Both swtiches expect a color specification, which is explained
@@ -122,7 +137,7 @@ ${bon}COLORS${bof}
       This program accepts a number in this range.  For example, 0 is black, 12
       is medium gray, and 23 is white.
 
-${bon}SPARKS${bof}
+${bon}SPARK CONTROL${bof}
 
   The number of sparks managed by the program can be specified with the -n
   switch.  By default, the program will choose a number of sparks that's half
@@ -146,7 +161,7 @@ ${bon}SPARKS${bof}
   default, the minimum drop time is 2, while the maximum is 10 more than the
   minimum.
 
-${bon}TAIL${bof}
+${bon}TAIL CONTROL${bof}
 
   The length of the tail on a given spark is chosen each time the spark is
   initialized at the top of the screen.  It is chosen randomly between a min and
@@ -156,7 +171,7 @@ ${bon}TAIL${bof}
   Every tick of the program, the glyphs in the tail have a chance to randomly
   change to another glyph.  The chance of a tail glyph changing on any given
   tick is one in the stability factor, specified by -T.  A higher stability
-  factor results in less tail changes.  The stability factor is 128 by default.
+  factor results in less tail changes.  The stability factor is 64 by default.
 ENDOFHELP
 }
 
@@ -185,7 +200,8 @@ declare OptLag=""
 declare OptLagInit=""
 declare OptTailStab=""
 declare OptAltBuffer=""
-while getopts ":hHs:t:l:L:d:D:n:y:g:G:T:b" OPTION ; do
+declare OptDelay=""
+while getopts ":hHs:t:l:L:d:D:n:y:g:G:T:ba:" OPTION ; do
   case $OPTION in
     ('h') Usage ; exit 0 ;;
     ('H') Help ; exit 0 ;;
@@ -213,6 +229,7 @@ while getopts ":hHs:t:l:L:d:D:n:y:g:G:T:b" OPTION ; do
     ('G') OptLagInit="$OPTARG"     ;;
     ('T') OptTailStab="$OPTARG"    ;;
     ('b') OptAltBuffer=1           ;;
+    ('a') OptDelay="$OPTARG"       ;;
     (':') UsageErr "option requires an argument -- $OPTARG" ;;
     ('?') UsageErr "illegal option -- $OPTARG" ;;
   esac
@@ -227,7 +244,8 @@ for OPTARG in "${@:1:2}" ; do
   shift
 done
 
-declare AnsiColors="black:red:green:yellow:blue:magenta:cyan:white"
+declare -r AnsiColors="black:red:green:yellow:blue:magenta:cyan:white"
+
 ParseColor () {
   local c="${1,,}"
   local a=""
@@ -286,6 +304,7 @@ declare -i SparkCount=$OptSparkCount
 declare -i SparkLag=$OptLag
 declare -i SparkLagInit=$OptLagInit
 declare -i TailStab=$OptTailStab
+declare -i Delay=$OptDelay
 
 if [[ ! "$OptTailColor" ]] ; then
   if [[ ! "$OptSparkColor" ]] ; then
@@ -330,7 +349,9 @@ fi
 
 ((SparkLag)) || SparkLag=128
 ((SparkLagInit)) || SparkLagInit=$((SparkLag*8))
-((TailStab)) || TailStab=128
+((TailStab)) || TailStab=64
+
+((Delay)) || Delay=0
 
 declare -a Glyphs=()
 ((OptGlyphSymbols)) && \
@@ -387,6 +408,7 @@ Rain () {
   declare -a  SparkRender=()
   declare -i  SparkNum=0
   declare -i  MaxY=0
+  declare -i  i=0
   declare -a  PosCache=()
   declare Loc=""
   for ((SparkNum=SparkCount-1; SparkNum>0; --SparkNum)) ; do
@@ -399,7 +421,7 @@ Rain () {
     SparkRender=()
     for Loc in ${!TailTTF[@]} ; do
       if ((--TailTTF[$Loc]>0)) ; then
-        ((RANDOM%TailStab)) || TailRender[$Loc]=${Glyphs[$((RANDOM%GlyphCount))]}
+        ((RANDOM%TailStab)) || TailRender[$Loc]="${Glyphs[$((RANDOM%GlyphCount))]}"
       else
         unset "TailTTF[$Loc]"
         TailRender[$Loc]=" "
@@ -423,7 +445,7 @@ Rain () {
       if ! ((--SparkTTD[$SparkNum])) ; then
         TailTTF[$Loc]=$((SparkSpeed[$SparkNum]*SparkTail[$SparkNum]))
         [[ ${SparkRender[$Loc]} ]] || \
-          TailRender[$Loc]=${Glyphs[$((RANDOM%GlyphCount))]}
+          TailRender[$Loc]="${Glyphs[$((RANDOM%GlyphCount))]}"
         if ((++SparkY[$SparkNum]>MaxY)) ; then
           SparkY[$SparkNum]=$((-1-RANDOM%SparkLag))
           continue
@@ -432,18 +454,23 @@ Rain () {
         SparkTTD[$SparkNum]=${SparkSpeed[$SparkNum]}
       fi
       [[ ${SparkRender[$Loc]} ]] && continue
-      printf %s ${PosCache[$Loc]:=$(tput cup ${SparkY[$SparkNum]} ${SparkX[$SparkNum]})}
-      printf %s "${Glyphs[$((RANDOM%GlyphCount))]}"
-      SparkRender[$Loc]=1
-      unset "TailRender[$Loc]"
+      [[ ${PosCache[$Loc]} ]] || PosCache[$Loc]=$(tput cup ${SparkY[$SparkNum]} ${SparkX[$SparkNum]})
+      SparkRender[$Loc]="${Glyphs[$((RANDOM%GlyphCount))]}"
+      # unset "TailRender[$Loc]"
     done
     
     printf %s $TailColor
     for Loc in ${!TailRender[@]} ; do
       [[ ${SparkRender[$Loc]} ]] && continue
-      printf %s ${PosCache[$Loc]}
-      printf %s "${TailRender[$Loc]}"
+      printf %s%s ${PosCache[$Loc]}  "${TailRender[$Loc]}"
     done
+
+    printf %s $SparkColor
+    for Loc in ${!SparkRender[@]} ; do
+      printf %s%s ${PosCache[$Loc]} "${SparkRender[$Loc]}"
+    done
+    
+    ((Delay)) && for ((i=Delay;i>=0;i--)) ; do : ; done
     
   done
 }
