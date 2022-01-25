@@ -456,7 +456,6 @@ Rain () {
       [[ ${SparkRender[$Loc]} ]] && continue
       [[ ${PosCache[$Loc]} ]] || PosCache[$Loc]=$(tput cup ${SparkY[$SparkNum]} ${SparkX[$SparkNum]})
       SparkRender[$Loc]="${Glyphs[$((RANDOM%GlyphCount))]}"
-      # unset "TailRender[$Loc]"
     done
     
     printf %s $TailColor
@@ -464,7 +463,6 @@ Rain () {
       [[ ${SparkRender[$Loc]} ]] && continue
       printf %s%s ${PosCache[$Loc]}  "${TailRender[$Loc]}"
     done
-
     printf %s $SparkColor
     for Loc in ${!SparkRender[@]} ; do
       printf %s%s ${PosCache[$Loc]} "${SparkRender[$Loc]}"
