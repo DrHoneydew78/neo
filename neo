@@ -271,21 +271,21 @@ if ! ((OptGlyph)) ; then
   OptGlyphDigits=1 
 fi
 
-declare -i m_SizeX="$(tput cols)"
-declare -i m_SizeY="$(tput lines)"
-[[ "$m_SizeX" && "$m_SizeX" -gt 0 && "$m_SizeY" && "$m_SizeY" -gt 0 ]] || \
+declare -i SizeX="$(tput cols)"
+declare -i SizeY="$(tput lines)"
+[[ "$SizeX" && "$SizeX" -gt 0 && "$SizeY" && "$SizeY" -gt 0 ]] || \
   UsageErr "Could not determine terminal size"
 
-declare    m_SparkColor=""
-declare    m_TailColor=""
-declare -i m_TailMin=0
-declare -i m_TailRange=0
-declare -i m_DropMin=0
-declare -i m_DropRange=0
-declare -i m_SparkCount=$OptSparkCount
-declare -i m_SparkLag=$OptLag
-declare -i m_SparkLagInit=$OptLagInit
-declare -i m_TailStab=$OptTailStab
+declare    SparkColor=""
+declare    TailColor=""
+declare -i TailMin=0
+declare -i TailRange=0
+declare -i DropMin=0
+declare -i DropRange=0
+declare -i SparkCount=$OptSparkCount
+declare -i SparkLag=$OptLag
+declare -i SparkLagInit=$OptLagInit
+declare -i TailStab=$OptTailStab
 
 if [[ ! "$OptTailColor" ]] ; then
   if [[ ! "$OptSparkColor" ]] ; then
@@ -297,22 +297,22 @@ if [[ ! "$OptTailColor" ]] ; then
   fi
 fi
 if [[ "$OptSparkColor" ]] ; then
-  m_SparkColor="$(ParseColor "${OptSparkColor}")" || exit $?
+  SparkColor="$(ParseColor "${OptSparkColor}")" || exit $?
 fi
 if [[ "$OptTailColor" ]] ; then
-  m_TailColor="$(ParseColor "${OptTailColor}")" || exit $?
+  TailColor="$(ParseColor "${OptTailColor}")" || exit $?
 fi
 
 [[ "$OptTailMin" ]] || OptTailMin=2
 if [[ ! "$OptTailMax" ]] ; then
-  OptTailMax=$((m_SizeY/2))
+  OptTailMax=$((SizeY/2))
   ((OptTailMax>15)) && OptTailMax=15
   ((OptTailMax<OptTailMin)) && OptTailMax=$OptTailMin
 fi
 ((OptTailMin>OptTailMax)) && \
   UsageErr "Min tail size cannot be greater than max"
-m_TailMin=$OptTailMin
-m_TailRange=$((OptTailMax-OptTailMin+1))
+TailMin=$OptTailMin
+TailRange=$((OptTailMax-OptTailMin+1))
 
 ((OptDropMin>0)) || OptDropMin=2
 if [[ ! "$OptDropMax" ]] ; then
@@ -320,44 +320,44 @@ if [[ ! "$OptDropMax" ]] ; then
 fi
 ((OptDropMin>OptDropMax)) && \
   UsageErr "Min drop time cannot be greater than max"
-m_DropMin=$OptDropMin
-m_DropRange=$((OptDropMax-OptDropMin+1))
+DropMin=$OptDropMin
+DropRange=$((OptDropMax-OptDropMin+1))
 
-if ! ((m_SparkCount)) ; then
-  m_SparkCount=$((m_SizeX*1/2))
-  ((m_SparkCount>50)) && m_SparkCount=50
+if ! ((SparkCount)) ; then
+  SparkCount=$((SizeX*1/2))
+  ((SparkCount>50)) && SparkCount=50
 fi
 
-((m_SparkLag)) || m_SparkLag=128
-((m_SparkLagInit)) || m_SparkLagInit=$((m_SparkLag*8))
-((m_TailStab)) || m_TailStab=128
+((SparkLag)) || SparkLag=128
+((SparkLagInit)) || SparkLagInit=$((SparkLag*8))
+((TailStab)) || TailStab=128
 
-declare -a m_Glyphs=()
+declare -a Glyphs=()
 ((OptGlyphSymbols)) && \
-  m_Glyphs+=('!' '"' '#' '$' % '&' "'" '(' ')' '*' + , - . /)
+  Glyphs+=('!' '"' '#' '$' % '&' "'" '(' ')' '*' + , - . /)
 ((OptGlyphHex+OptGlyphDigits)) && \
-  m_Glyphs+=({0..9})
+  Glyphs+=({0..9})
 ((OptGlyphSymbols)) && \
-  m_Glyphs+=(: ';' '<' = '>' '?' @)
+  Glyphs+=(: ';' '<' = '>' '?' @)
 ((OptGlyphUpper+OptGlyphHex+OptGlyphAlpha)) && \
-  m_Glyphs+=({A..F})
+  Glyphs+=({A..F})
 ((OptGlyphUpper+OptGlyphAlpha)) && \
-  m_Glyphs+=({G..Z})
+  Glyphs+=({G..Z})
 ((OptGlyphSymbols)) && \
-  m_Glyphs+=('[' $'\\' ']' ^ _ '`')
+  Glyphs+=('[' $'\\' ']' ^ _ '`')
 ((OptGlyphLower+OptGlyphAlpha)) && \
-  m_Glyphs+=({a..z})
+  Glyphs+=({a..z})
 ((OptGlyphSymbols)) && \
-  m_Glyphs+=('{' '|' '}' '~')
+  Glyphs+=('{' '|' '}' '~')
 if ((OptGlyphKata)) ; then
   [[ "$LANG" == *".UTF-8" ]] || \
     UsageErr "Kata glyphs only work with the UTF-8 locale setting (LANG var)"
-  m_Glyphs+=($(printf "%b " "\xef\xbd\xa"{{6..9},{a..f}}))
-  m_Glyphs+=($(printf "%b " "\xef\xb"{"d\xb","e\x8"}{{0..9},{a..f}}))
-  m_Glyphs+=($(printf "%b " "\xef\xbe\x9"{{0..9},{a..d}}))
+  Glyphs+=($(printf "%b " "\xef\xbd\xa"{{6..9},{a..f}}))
+  Glyphs+=($(printf "%b " "\xef\xb"{"d\xb","e\x8"}{{0..9},{a..f}}))
+  Glyphs+=($(printf "%b " "\xef\xbe\x9"{{0..9},{a..d}}))
 fi
 
-declare -i m_GlyphCount=${#m_Glyphs[@]}
+declare -i GlyphCount=${#Glyphs[@]}
 
 ExitTrap () {
   tput sgr0
@@ -377,72 +377,72 @@ tput sc
 ((OptAltBuffer)) && tput clear
 
 Rain () {
-  declare -ai m_SparkX=()
-  declare -ai m_SparkY=()
-  declare -ai m_SparkSpeed=()
-  declare -ai m_SparkTail=()
-  declare -ai m_SparkTTD=()
-  declare -ai m_TailTTF=()
-  declare -a  m_TailRender=()
-  declare -a  m_SparkRender=()
-  declare -i  m_SparkNum=0
-  declare -i  m_MaxY=0
-  declare -a  m_PosCache=()
-  declare m_Loc=""
-  for ((m_SparkNum=m_SparkCount-1; m_SparkNum>0; --m_SparkNum)) ; do
-    m_SparkY[$m_SparkNum]=$((-1-RANDOM%m_SparkLagInit))
+  declare -ai SparkX=()
+  declare -ai SparkY=()
+  declare -ai SparkSpeed=()
+  declare -ai SparkTail=()
+  declare -ai SparkTTD=()
+  declare -ai TailTTF=()
+  declare -a  TailRender=()
+  declare -a  SparkRender=()
+  declare -i  SparkNum=0
+  declare -i  MaxY=0
+  declare -a  PosCache=()
+  declare Loc=""
+  for ((SparkNum=SparkCount-1; SparkNum>0; --SparkNum)) ; do
+    SparkY[$SparkNum]=$((-1-RANDOM%SparkLagInit))
   done
-  m_SparkY[0]=-1
-  m_MaxY=$((m_SizeY-1))
+  SparkY[0]=-1
+  MaxY=$((SizeY-1))
   while :; do
-    m_TailRender=()
-    m_SparkRender=()
-    for m_Loc in ${!m_TailTTF[@]} ; do
-      if ((--m_TailTTF[$m_Loc]>0)) ; then
-        ((RANDOM%m_TailStab)) || m_TailRender[$m_Loc]=${m_Glyphs[$((RANDOM%m_GlyphCount))]}
+    TailRender=()
+    SparkRender=()
+    for Loc in ${!TailTTF[@]} ; do
+      if ((--TailTTF[$Loc]>0)) ; then
+        ((RANDOM%TailStab)) || TailRender[$Loc]=${Glyphs[$((RANDOM%GlyphCount))]}
       else
-        unset "m_TailTTF[$m_Loc]"
-        m_TailRender[$m_Loc]=" "
+        unset "TailTTF[$Loc]"
+        TailRender[$Loc]=" "
       fi
     done
         
-    printf %s $m_SparkColor
-    for ((m_SparkNum=m_SparkCount-1; m_SparkNum>=0; --m_SparkNum)) ; do
-      if ((m_SparkY[$m_SparkNum]<-1)) ; then
-        ((++m_SparkY[$m_SparkNum]))
+    printf %s $SparkColor
+    for ((SparkNum=SparkCount-1; SparkNum>=0; --SparkNum)) ; do
+      if ((SparkY[$SparkNum]<-1)) ; then
+        ((++SparkY[$SparkNum]))
         continue
       fi
-      if ((m_SparkY[$m_SparkNum]==-1)) ; then
-        m_SparkX[$m_SparkNum]=$((RANDOM%m_SizeX))
-        m_SparkY[$m_SparkNum]=0
-        m_SparkSpeed[$m_SparkNum]=$((m_DropMin+RANDOM%m_DropRange))
-        m_SparkTail[$m_SparkNum]=$((m_TailMin+RANDOM%m_TailRange))
-        m_SparkTTD[$m_SparkNum]=$((m_SparkSpeed[$m_SparkNum]+1))
+      if ((SparkY[$SparkNum]==-1)) ; then
+        SparkX[$SparkNum]=$((RANDOM%SizeX))
+        SparkY[$SparkNum]=0
+        SparkSpeed[$SparkNum]=$((DropMin+RANDOM%DropRange))
+        SparkTail[$SparkNum]=$((TailMin+RANDOM%TailRange))
+        SparkTTD[$SparkNum]=$((SparkSpeed[$SparkNum]+1))
       fi
-      m_Loc=$((m_SparkY[m_SparkNum]*m_SizeX+m_SparkX[m_SparkNum]))
-      if ! ((--m_SparkTTD[$m_SparkNum])) ; then
-        m_TailTTF[$m_Loc]=$((m_SparkSpeed[$m_SparkNum]*m_SparkTail[$m_SparkNum]))
-        [[ ${m_SparkRender[$m_Loc]} ]] || \
-          m_TailRender[$m_Loc]=${m_Glyphs[$((RANDOM%m_GlyphCount))]}
-        if ((++m_SparkY[$m_SparkNum]>m_MaxY)) ; then
-          m_SparkY[$m_SparkNum]=$((-1-RANDOM%m_SparkLag))
+      Loc=$((SparkY[SparkNum]*SizeX+SparkX[SparkNum]))
+      if ! ((--SparkTTD[$SparkNum])) ; then
+        TailTTF[$Loc]=$((SparkSpeed[$SparkNum]*SparkTail[$SparkNum]))
+        [[ ${SparkRender[$Loc]} ]] || \
+          TailRender[$Loc]=${Glyphs[$((RANDOM%GlyphCount))]}
+        if ((++SparkY[$SparkNum]>MaxY)) ; then
+          SparkY[$SparkNum]=$((-1-RANDOM%SparkLag))
           continue
         fi
-        m_Loc=$((m_SparkY[m_SparkNum]*m_SizeX+m_SparkX[m_SparkNum]))
-        m_SparkTTD[$m_SparkNum]=${m_SparkSpeed[$m_SparkNum]}
+        Loc=$((SparkY[SparkNum]*SizeX+SparkX[SparkNum]))
+        SparkTTD[$SparkNum]=${SparkSpeed[$SparkNum]}
       fi
-      [[ ${m_SparkRender[$m_Loc]} ]] && continue
-      printf %s ${m_PosCache[$m_Loc]:=$(tput cup ${m_SparkY[$m_SparkNum]} ${m_SparkX[$m_SparkNum]})}
-      printf %s "${m_Glyphs[$((RANDOM%m_GlyphCount))]}"
-      m_SparkRender[$m_Loc]=1
-      unset "m_TailRender[$m_Loc]"
+      [[ ${SparkRender[$Loc]} ]] && continue
+      printf %s ${PosCache[$Loc]:=$(tput cup ${SparkY[$SparkNum]} ${SparkX[$SparkNum]})}
+      printf %s "${Glyphs[$((RANDOM%GlyphCount))]}"
+      SparkRender[$Loc]=1
+      unset "TailRender[$Loc]"
     done
     
-    printf %s $m_TailColor
-    for m_Loc in ${!m_TailRender[@]} ; do
-      [[ ${m_SparkRender[$m_Loc]} ]] && continue
-      printf %s ${m_PosCache[$m_Loc]}
-      printf %s "${m_TailRender[$m_Loc]}"
+    printf %s $TailColor
+    for Loc in ${!TailRender[@]} ; do
+      [[ ${SparkRender[$Loc]} ]] && continue
+      printf %s ${PosCache[$Loc]}
+      printf %s "${TailRender[$Loc]}"
     done
     
   done
