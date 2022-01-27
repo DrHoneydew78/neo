@@ -41,8 +41,10 @@ ENDOFUSAGE
 }
 
 Help () {
-declare bon="$(tput bold)"
-declare bof="$(tput sgr0)"
+declare bon=""
+declare bof=""
+bon="$(tput bold)"
+bof="$(tput sgr0)"
 Usage
 cat <<ENDOFHELP
 
@@ -178,7 +180,7 @@ ENDOFHELP
 UsageErr() {
   echo "ERROR: ${1:-No error specified}" >&2
   Usage >&2
-  exit ${2:-1}
+  exit "${2:-1}"
 }
 
 declare OptSparkColor=""
@@ -289,8 +291,10 @@ if ! ((OptGlyph)) ; then
   OptGlyphDigits=1 
 fi
 
-declare -i SizeX="$(tput cols)"
-declare -i SizeY="$(tput lines)"
+declare -i SizeX=0
+declare -i SizeY=0
+SizeX="${COLUMNS:-$(tput cols)}"
+SizeY="${LINES:-$(tput lines)}"
 [[ "$SizeX" && "$SizeX" -gt 0 && "$SizeY" && "$SizeY" -gt 0 ]] || \
   UsageErr "Could not determine terminal size"
 
@@ -347,25 +351,25 @@ if ! ((SparkCount)) ; then
   ((SparkCount>50)) && SparkCount=50
 fi
 
-((SparkLag)) || SparkLag=128
-((SparkLagInit)) || SparkLagInit=$((SparkLag*8))
-((TailStab)) || TailStab=64
+((SparkLag>0)) || SparkLag=128
+((SparkLagInit>0)) || SparkLagInit=$((SparkLag*8))
+((TailStab>0)) || TailStab=64
 
-((Delay)) || Delay=0
+((Delay>=0)) || Delay=0
 
 declare -a Glyphs=()
 ((OptGlyphSymbols)) && \
-  Glyphs+=('!' '"' '#' '$' % '&' "'" '(' ')' '*' + , - . /)
+  Glyphs+=('!' '"' '#' '$' '%' '&' "'" '(' ')' '*' '+' ',' '-' '.' '/')
 ((OptGlyphHex+OptGlyphDigits)) && \
   Glyphs+=({0..9})
 ((OptGlyphSymbols)) && \
-  Glyphs+=(: ';' '<' = '>' '?' @)
+  Glyphs+=(':' ';' '<' '=' '>' '?' '@')
 ((OptGlyphUpper+OptGlyphHex+OptGlyphAlpha)) && \
   Glyphs+=({A..F})
 ((OptGlyphUpper+OptGlyphAlpha)) && \
   Glyphs+=({G..Z})
 ((OptGlyphSymbols)) && \
-  Glyphs+=('[' $'\\' ']' ^ _ '`')
+  Glyphs+=('[' $'\\' ']' '^' '_' '`')
 ((OptGlyphLower+OptGlyphAlpha)) && \
   Glyphs+=({a..z})
 ((OptGlyphSymbols)) && \
@@ -373,8 +377,11 @@ declare -a Glyphs=()
 if ((OptGlyphKata)) ; then
   [[ "$LANG" == *".UTF-8" ]] || \
     UsageErr "Kata glyphs only work with the UTF-8 locale setting (LANG var)"
+  # shellcheck disable=SC2207
   Glyphs+=($(printf "%b " "\xef\xbd\xa"{{6..9},{a..f}}))
+  # shellcheck disable=SC2207
   Glyphs+=($(printf "%b " "\xef\xb"{"d\xb","e\x8"}{{0..9},{a..f}}))
+  # shellcheck disable=SC2207
   Glyphs+=($(printf "%b " "\xef\xbe\x9"{{0..9},{a..d}}))
 fi
 
@@ -419,8 +426,8 @@ Rain () {
   while :; do
     TailRender=()
     SparkRender=()
-    for Loc in ${!TailTTF[@]} ; do
-      if ((--TailTTF[$Loc]>0)) ; then
+    for Loc in "${!TailTTF[@]}" ; do
+      if ((--TailTTF[Loc]>0)) ; then
         ((RANDOM%TailStab)) || TailRender[$Loc]="${Glyphs[$((RANDOM%GlyphCount))]}"
       else
         unset "TailTTF[$Loc]"
@@ -428,25 +435,25 @@ Rain () {
       fi
     done
         
-    printf %s $SparkColor
+    printf %s "$SparkColor"
     for ((SparkNum=SparkCount-1; SparkNum>=0; --SparkNum)) ; do
-      if ((SparkY[$SparkNum]<-1)) ; then
-        ((++SparkY[$SparkNum]))
+      if ((SparkY[SparkNum]<-1)) ; then
+        ((++SparkY[SparkNum]))
         continue
       fi
-      if ((SparkY[$SparkNum]==-1)) ; then
+      if ((SparkY[SparkNum]==-1)) ; then
         SparkX[$SparkNum]=$((RANDOM%SizeX))
         SparkY[$SparkNum]=0
         SparkSpeed[$SparkNum]=$((DropMin+RANDOM%DropRange))
         SparkTail[$SparkNum]=$((TailMin+RANDOM%TailRange))
-        SparkTTD[$SparkNum]=$((SparkSpeed[$SparkNum]+1))
+        SparkTTD[$SparkNum]=$((SparkSpeed[SparkNum]+1))
       fi
       Loc=$((SparkY[SparkNum]*SizeX+SparkX[SparkNum]))
-      if ! ((--SparkTTD[$SparkNum])) ; then
-        TailTTF[$Loc]=$((SparkSpeed[$SparkNum]*SparkTail[$SparkNum]))
+      if ! ((--SparkTTD[SparkNum])) ; then
+        TailTTF[$Loc]=$((SparkSpeed[SparkNum]*SparkTail[$SparkNum]))
         [[ ${SparkRender[$Loc]} ]] || \
           TailRender[$Loc]="${Glyphs[$((RANDOM%GlyphCount))]}"
-        if ((++SparkY[$SparkNum]>MaxY)) ; then
+        if ((++SparkY[SparkNum]>MaxY)) ; then
           SparkY[$SparkNum]=$((-1-RANDOM%SparkLag))
           continue
         fi
@@ -458,14 +465,14 @@ Rain () {
       SparkRender[$Loc]="${Glyphs[$((RANDOM%GlyphCount))]}"
     done
     
-    printf %s $TailColor
-    for Loc in ${!TailRender[@]} ; do
+    printf %s "$TailColor"
+    for Loc in "${!TailRender[@]}" ; do
       [[ ${SparkRender[$Loc]} ]] && continue
-      printf %s%s ${PosCache[$Loc]}  "${TailRender[$Loc]}"
+      printf %s%s "${PosCache[$Loc]}"  "${TailRender[$Loc]}"
     done
-    printf %s $SparkColor
+    printf %s "$SparkColor"
     for Loc in ${!SparkRender[@]} ; do
-      printf %s%s ${PosCache[$Loc]} "${SparkRender[$Loc]}"
+      printf %s%s "${PosCache[$Loc]}" "${SparkRender[$Loc]}"
     done
     
     ((Delay)) && for ((i=Delay;i>=0;i--)) ; do : ; done
