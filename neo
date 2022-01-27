@@ -471,7 +471,7 @@ Rain () {
       printf %s%s "${PosCache[$Loc]}"  "${TailRender[$Loc]}"
     done
     printf %s "$SparkColor"
-    for Loc in" ${!SparkRender[@]}" ; do
+    for Loc in "${!SparkRender[@]}" ; do
       printf %s%s "${PosCache[$Loc]}" "${SparkRender[$Loc]}"
     done
     
