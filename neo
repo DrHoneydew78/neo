@@ -435,7 +435,6 @@ Rain () {
       fi
     done
         
-    printf %s "$SparkColor"
     for ((SparkNum=SparkCount-1; SparkNum>=0; --SparkNum)) ; do
       if ((SparkY[SparkNum]<-1)) ; then
         ((++SparkY[SparkNum]))

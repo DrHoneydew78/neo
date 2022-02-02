@@ -1,5 +1,5 @@
 #!/bin/bash
-
+dbg=""
 # Program "neo" displays digital rain effect in the terminal
 # Copyright (C) 2022  DrHoneydew78
 #
@@ -18,11 +18,11 @@
 
 Usage () {
 cat <<ENDOFUSAGE
-Usage: neo -h | -H
+Usage: life -h | -H
   -h        : Display usage and exit
   -H        : Display extended help
 
-Usage: neo [-y set]... [[-s] color] [-t color] [[-n] number] [-g lag [-G lag]]
+Usage: life [-y set]... [[-s] color] [-t color] [[-n] number] [-g lag [-G lag]]
            [-d time -D time] [-l len -L len] [-T stab] [-b] [-a delay]
   -y set    : Set of glyphs to include (see -H for glyph sets)
   -s color  : Spark color (see -H for color spec)
@@ -50,130 +50,6 @@ cat <<ENDOFHELP
 
 ${bon}PROGRAM DESCRIPTION${bof}
 
-  This program generates the digital rain from The Matrix.  It is written almost
-  entirely in bash, except for the use of tput for color codes and cursor
-  positioning.
-  
-  This help information uses the terms "spark" and "tail" to describe properties
-  of the rain effect.  The spark is the bottom character of a streak of the
-  rain.  It changes with every tick of the program, and slowly progresses from
-  the top of the screen to the bottom.  As it falls, it leaves several
-  characters in its wake, forming the tail.  The tail characters only persist
-  for a limited time before disappearing entirely.
-  
-  This program has a lot of switches, but none of them are required.  The
-  The program attempts to have sane defaults for all the options, which are
-  called out through the documentation.
-  
-  This program was written and tested with xterm and xterm-256color terminal
-  types in mind.  Because it relies on tput, it should be portable to other
-  well-defined terminal types, but no testing was done in this regard.  The
-  program was written and tested for the US English locale (LANG=en_US.UTF-8),
-  terminals with other locales were not tested and may affect glyph selection
-  and encoding, but should mostly work.
-
-${bon}PROGRAM CONTROL${bof}
-
-  Currently the only way to stop the program is with the INT signal, typically
-  triggered by pressing Ctrl-C.
-
-  By default, the program will render rain to the primary screen buffer.  The
-  -b switch will change to the alternate screen buffer and render there,
-  preserving what's currently on the screen.
-  
-  By default, the program executes as fast as possible, which can be very fast
-  in some configurations.  Use the -a switch to introduce an artificial delay
-  after rendering every tick of the program.  The program simply counts a number
-  of noops equal to the delay specified after each tick is rendered.
-
-${bon}GLYPH SELECTION${bof}
-  
-  The spark and tail choose characters randomly from a set of glyphs that can
-  be controlled with the -y switch.  Multiple -y switches can be passed to
-  include multiple glyph sets.  Some glyph sets overlap.  If no glyph sets are
-  specified, the program uses alpha, digits, and symbol.
-  
-  Glyph Sets
-  
-    alpha   - All upper and lower case alphabetic characters
-    upper   - Upper case alphabetic characters
-    lower   - Lower case alphabetic characters
-    digits  - The digits 0 to 9
-    hex     - The digits plus upper case alphabetic characters A to F
-    symbols - Pretty much all the printable symbols below ASCII 127
-    kata    - A variety of half-width kata characters using Unicode
-
-${bon}COLOR OPTIONS${bof}
-
-  You can use the -s and -t switches to set the spark and tail colors
-  respectively.  Both swtiches expect a color specification, which is explained
-  below.  In many cases, the tail color is intelligently set when omitted, based
-  on the spark color.  The spark color can be specified without the explicit use
-  of the -s switch, but only for ANSI colors or mono.  In this case, the color
-  name must appear after all formal -* switches.  For instance, "neo cyan" is a
-  valid command.  By default, the program tries to use bright green for the
-  spark and dim green for the tail.
-
-  Color Specifications
-
-    There are four different types of color specifications:
-    
-    ANSI Color Names - The 8 ANSI terminal colors can be specified by name.
-      The supported names are black, red, green, yellow, blue, magenta, cyan,
-      and white.  The bold variant of the ANSI colors can be selected by
-      specifying the color name in all caps (BLACK, RED, etc.).
-    
-    Monochrome - The word mono or MONO can be used like an ANSI color.  This 
-      color specification tells the program to only send escape sequences
-      to turn on or off the bold attribute, without specifying an actual color.
-      Possibly useful for monochrome terminals, like VT100.
-
-    RGB Triplet - A portion of the ANSI 256-color palette forms a cube of 216
-      colors where the red, green, and blue components of the color are digits
-      from 0 to 5.  This program accepts the triplet as a 3 digit number, where
-      zeros must be specified.  For example, 005 would be full blue, while 220
-      would be a medium-intensity yellow.
-      
-    Grayscale - Another portion of the 256-color palette is a greyscale
-      gradient.  There are 24 shades in the gradient, numbered from 0 to 23.
-      This program accepts a number in this range.  For example, 0 is black, 12
-      is medium gray, and 23 is white.
-
-${bon}SPARK CONTROL${bof}
-
-  The number of sparks managed by the program can be specified with the -n
-  switch.  By default, the program will choose a number of sparks that's half
-  the number of columns in the terminal, up to 50.  The -n switch is technically
-  optional, and the number of sparks can be specified at the end of the command
-  like the spark color.  So "neo 5" is a valid command.
-  
-  Not all sparks will be on the screen at all times.  When a spark reaches the
-  bottom of the screen, there is a lag before the spark is restarted at the top
-  of the screen in a new position.  The number of ticks of lag is chosen
-  randomly between zero and the number specified by -g.  This number is 128 by
-  default.  The lag before starting a spark at the beginning of program
-  execution is specified by -G, and defaults to 8 times the normal lag.
-  
-  How fast the spark moves from the top to the bottom of the screen is
-  determined by the drop time, or the number of program ticks to stay in the
-  same location on the screen before moving down.  The lower the drop time, the
-  faster the spark moves.  Each time the spark is initialized at the top of the
-  screen, the program chooses a number randomly between the min drop time and
-  the max drop time.  The min time is specified by -d, and the max by -D.  By
-  default, the minimum drop time is 2, while the maximum is 10 more than the
-  minimum.
-
-${bon}TAIL CONTROL${bof}
-
-  The length of the tail on a given spark is chosen each time the spark is
-  initialized at the top of the screen.  It is chosen randomly between a min and
-  max lengths, specified -l and -L respectively.  By default, the minimum length
-  is 2, while the maximum is half the number of rows in the terminal, up to 15.
-  
-  Every tick of the program, the glyphs in the tail have a chance to randomly
-  change to another glyph.  The chance of a tail glyph changing on any given
-  tick is one in the stability factor, specified by -T.  A higher stability
-  factor results in less tail changes.  The stability factor is 64 by default.
 ENDOFHELP
 }
 
@@ -183,68 +59,18 @@ UsageErr() {
   exit "${2:-1}"
 }
 
-declare OptSparkColor=""
-declare OptTailColor=""
-declare OptTailMin=""
-declare OptTailMax=""
-declare OptDropMin=""
-declare OptDropMax=""
-declare OptSparkCount=""
-declare OptGlyph=""
-declare OptGlyphSymbols=""
-declare OptGlyphLower=""
-declare OptGlyphUpper=""
-declare OptGlyphHex=""
-declare OptGlyphAlpha=""
-declare OptGlyphDigits=""
-declare OptGlyphKata=""
-declare OptLag=""
-declare OptLagInit=""
-declare OptTailStab=""
-declare OptAltBuffer=""
-declare OptDelay=""
-while getopts ":hHs:t:l:L:d:D:n:y:g:G:T:ba:" OPTION ; do
+declare OptAltBuffer=1
+while getopts ":hHb" OPTION ; do
   case $OPTION in
     ('h') Usage ; exit 0 ;;
     ('H') Help ; exit 0 ;;
-    ('s') OptSparkColor="$OPTARG"  ;;
-    ('t') OptTailColor="$OPTARG"   ;;
-    ('l') OptTailMin="$OPTARG"     ;;
-    ('L') OptTailMax="$OPTARG"     ;;
-    ('d') OptDropMin="$OPTARG"     ;;
-    ('D') OptDropMax="$OPTARG"     ;;
-    ('n') OptSparkCount="$OPTARG"  ;;
-    ('y')
-      OptGlyph=1
-      case "$OPTARG" in
-        (symbol) OptGlyphSymbols=1 ;;
-        (lower ) OptGlyphLower=1   ;;
-        (upper ) OptGlyphUpper=1   ;;
-        (hex   ) OptGlyphHex=1     ;;
-        (alpha ) OptGlyphAlpha=1   ;;
-        (digits) OptGlyphDigits=1  ;;
-        (kata  ) OptGlyphKata=1    ;;
-        (*)      UsageErr "Invalid glyph set specified" ;;
-      esac
-      ;;
-    ('g') OptLag="$OPTARG"         ;;
-    ('G') OptLagInit="$OPTARG"     ;;
-    ('T') OptTailStab="$OPTARG"    ;;
-    ('b') OptAltBuffer=1           ;;
-    ('a') OptDelay="$OPTARG"       ;;
+    #('s') OptSparkColor="$OPTARG"  ;;
+    ('b') OptAltBuffer=""           ;;
     (':') UsageErr "option requires an argument -- $OPTARG" ;;
     ('?') UsageErr "illegal option -- $OPTARG" ;;
   esac
 done
 shift $((OPTIND-1))
-for OPTARG in "${@:1:2}" ; do
-  if [[ "$OPTARG" =~ ^[[:digit:]]+$ ]] ; then
-    OptSparkCount="$OPTARG"
-  else
-    OptSparkColor="$OPTARG"
-  fi
-  shift
-done
 
 declare -r AnsiColors="black:red:green:yellow:blue:magenta:cyan:white"
 
@@ -285,12 +111,6 @@ ParseColor () {
 (($#)) && \
   UsageErr "Arbitrary parameters not allowed"
 
-if ! ((OptGlyph)) ; then
-  OptGlyphSymbols=1
-  OptGlyphAlpha=1  
-  OptGlyphDigits=1 
-fi
-
 declare -i SizeX=0
 declare -i SizeY=0
 SizeX="${COLUMNS:-$(tput cols)}"
@@ -298,186 +118,141 @@ SizeY="${LINES:-$(tput lines)}"
 [[ "$SizeX" && "$SizeX" -gt 0 && "$SizeY" && "$SizeY" -gt 0 ]] || \
   UsageErr "Could not determine terminal size"
 
-declare    SparkColor=""
-declare    TailColor=""
-declare -i TailMin=0
-declare -i TailRange=0
-declare -i DropMin=0
-declare -i DropRange=0
-declare -i SparkCount=$OptSparkCount
-declare -i SparkLag=$OptLag
-declare -i SparkLagInit=$OptLagInit
-declare -i TailStab=$OptTailStab
-declare -i Delay=$OptDelay
+declare MainColor=""
+declare ResetColor=""
+MainColor="$(tput setab 7)"
+ResetColor="$(tput sgr0)"
 
-if [[ ! "$OptTailColor" ]] ; then
-  if [[ ! "$OptSparkColor" ]] ; then
-    OptSparkColor="green"
-  fi
-  if [[ :"$AnsiColors":mono: == *:"${OptSparkColor,,}":* ]] ; then
-    OptSparkColor="${OptSparkColor^^}"
-    OptTailColor="${OptSparkColor,,}"
-  fi
-fi
-if [[ "$OptSparkColor" ]] ; then
-  SparkColor="$(ParseColor "${OptSparkColor}")" || exit $?
-fi
-if [[ "$OptTailColor" ]] ; then
-  TailColor="$(ParseColor "${OptTailColor}")" || exit $?
-fi
-
-[[ "$OptTailMin" ]] || OptTailMin=2
-if [[ ! "$OptTailMax" ]] ; then
-  OptTailMax=$((SizeY/2))
-  ((OptTailMax>15)) && OptTailMax=15
-  ((OptTailMax<OptTailMin)) && OptTailMax=$OptTailMin
-fi
-((OptTailMin>OptTailMax)) && \
-  UsageErr "Min tail size cannot be greater than max"
-TailMin=$OptTailMin
-TailRange=$((OptTailMax-OptTailMin+1))
-
-((OptDropMin>0)) || OptDropMin=2
-if [[ ! "$OptDropMax" ]] ; then
-  OptDropMax=$((OptDropMin+10))
-fi
-((OptDropMin>OptDropMax)) && \
-  UsageErr "Min drop time cannot be greater than max"
-DropMin=$OptDropMin
-DropRange=$((OptDropMax-OptDropMin+1))
-
-if ! ((SparkCount)) ; then
-  SparkCount=$((SizeX*1/2))
-  ((SparkCount>50)) && SparkCount=50
-fi
-
-((SparkLag>0)) || SparkLag=128
-((SparkLagInit>0)) || SparkLagInit=$((SparkLag*8))
-((TailStab>0)) || TailStab=64
-
-((Delay>=0)) || Delay=0
-
-declare -a Glyphs=()
-((OptGlyphSymbols)) && \
-  Glyphs+=('!' '"' '#' '$' '%' '&' "'" '(' ')' '*' '+' ',' '-' '.' '/')
-((OptGlyphHex+OptGlyphDigits)) && \
-  Glyphs+=({0..9})
-((OptGlyphSymbols)) && \
-  Glyphs+=(':' ';' '<' '=' '>' '?' '@')
-((OptGlyphUpper+OptGlyphHex+OptGlyphAlpha)) && \
-  Glyphs+=({A..F})
-((OptGlyphUpper+OptGlyphAlpha)) && \
-  Glyphs+=({G..Z})
-((OptGlyphSymbols)) && \
-  Glyphs+=('[' $'\\' ']' '^' '_' '`')
-((OptGlyphLower+OptGlyphAlpha)) && \
-  Glyphs+=({a..z})
-((OptGlyphSymbols)) && \
-  Glyphs+=('{' '|' '}' '~')
-if ((OptGlyphKata)) ; then
-  [[ "$LANG" == *".UTF-8" ]] || \
-    UsageErr "Kata glyphs only work with the UTF-8 locale setting (LANG var)"
-  # shellcheck disable=SC2207
-  Glyphs+=($(printf "%b " "\xef\xbd\xa"{{6..9},{a..f}}))
-  # shellcheck disable=SC2207
-  Glyphs+=($(printf "%b " "\xef\xb"{"d\xb","e\x8"}{{0..9},{a..f}}))
-  # shellcheck disable=SC2207
-  Glyphs+=($(printf "%b " "\xef\xbe\x9"{{0..9},{a..d}}))
-fi
-
-declare -i GlyphCount=${#Glyphs[@]}
 
 ExitTrap () {
+  ((OptAltBuffer)) && tput rmcup
   tput sgr0
   tput rc
   tput el
   tput cnorm
-  ((OptAltBuffer)) && tput rmcup
   stty echo
 }
 trap 'exit 1' INT TERM
 trap ExitTrap EXIT
 
-stty -echo
-tput civis
 tput sc
 ((OptAltBuffer)) && tput smcup
-((OptAltBuffer)) && tput clear
+stty -echo
+tput civis
+#((OptAltBuffer)) && tput clear
+tput clear
 
-Rain () {
-  declare -ai SparkX=()
-  declare -ai SparkY=()
-  declare -ai SparkSpeed=()
-  declare -ai SparkTail=()
-  declare -ai SparkTTD=()
-  declare -ai TailTTF=()
-  declare -a  TailRender=()
-  declare -a  SparkRender=()
-  declare -i  SparkNum=0
-  declare -i  MaxY=0
-  declare -i  i=0
-  declare -a  PosCache=()
-  declare Loc=""
-  for ((SparkNum=SparkCount-1; SparkNum>0; --SparkNum)) ; do
-    SparkY[$SparkNum]=$((-1-RANDOM%SparkLagInit))
-  done
-  SparkY[0]=-1
-  MaxY=$((SizeY-1))
+((dbg)) && declare dbg_size=$((SizeY-10))
+((dbg)) && SizeY=10 SizeX=40
+((dbg)) && declare dbg_start=1
+((dbg)) && Debug () {
+
+  local i=0
+  if ((dbg_start)) ; then
+    dbg_start=""
+    tput setaf 3
+    for ((i=0; i<dbg_size; i++)) ; do
+      tput cup $((SizeY+i)) 0 ; tput el
+    done
+    tput cup $((SizeY)) 0
+  fi
+  
+  if [[ "$1" == "-p" ]] ; then
+    tput sgr0
+    dbg_start=1
+    read -s -n1
+    return
+  fi
+  
+  "$@"
+  
+}
+
+Life () {
+
+  ((dbg)) && { tput cup 0            0            ; printf X ; }
+  ((dbg)) && { tput cup $((SizeY-1)) 0            ; printf X ; }
+  ((dbg)) && { tput cup 0            $((SizeX-1)) ; printf X ; }
+  ((dbg)) && { tput cup $((SizeY-1)) $((SizeX-1)) ; printf X ; }
+  
+  local -Ai Evn=() Odd=()
+  local i=""
+  local -i ii=0
+  local -i xh=0
+  local -i xi=0
+  local -i xj=0
+  local -i yh=0
+  local -i yi=0
+  local -i yj=0
+  local -i Gen=0
+  local -a Spawn=() Death=()
+  local -A PosCache=()
+
+  if ((0==1)) ; then
+    local -a V=()
+    #V+=(16,6,1,1)
+    V+=(20,13,-1,-1)
+    for v in "${V[@]}" ; do 
+      IFS=, read x y w z <<< "$v"
+      Evn+=([$((x-w)) $((y-z))]=0 [$((x+0)) $((y-z))]=0 [$((x+w)) $((y-z))]=3
+            [$((x-w)) $((y+0))]=3 [$((x+0)) $((y-z))]=0 [$((x+w)) $((y+0))]=3
+            [$((x-w)) $((y+z))]=0 [$((x+0)) $((y+z))]=3 [$((x+w)) $((y+z))]=3)
+    done
+  fi
+  if ((0==0)) ; then
+    local -a V=()
+    #V+=(16,6,1,1)
+    V+=($((SizeX/2)),$((SizeY/2)),1,1)
+    for v in "${V[@]}" ; do 
+      IFS=, read x y w z <<< "$v"
+      Evn+=([$((x-w)) $((y-z))]=0 [$((x+0)) $((y-z))]=3 [$((x+w)) $((y-z))]=3
+            [$((x-w)) $((y+0))]=3 [$((x+0)) $((y+0))]=3 [$((x+w)) $((y+0))]=0
+            [$((x-w)) $((y+z))]=0 [$((x+0)) $((y+z))]=3 [$((x+w)) $((y+z))]=0)
+    done
+  fi
+  # Any live cell with two or three live neighbours survives.
+  # Any dead cell with three live neighbours becomes a live cell.
+  # All other live cells die in the next generation. Similarly, all other dead cells stay dead.
   while :; do
-    TailRender=()
-    SparkRender=()
-    for Loc in "${!TailTTF[@]}" ; do
-      if ((--TailTTF[Loc]>0)) ; then
-        ((RANDOM%TailStab)) || TailRender[$Loc]="${Glyphs[$((RANDOM%GlyphCount))]}"
-      else
-        unset "TailTTF[$Loc]"
-        TailRender[$Loc]=" "
-      fi
-    done
-        
-    printf %s "$SparkColor"
-    for ((SparkNum=SparkCount-1; SparkNum>=0; --SparkNum)) ; do
-      if ((SparkY[SparkNum]<-1)) ; then
-        ((++SparkY[SparkNum]))
-        continue
-      fi
-      if ((SparkY[SparkNum]==-1)) ; then
-        SparkX[$SparkNum]=$((RANDOM%SizeX))
-        SparkY[$SparkNum]=0
-        SparkSpeed[$SparkNum]=$((DropMin+RANDOM%DropRange))
-        SparkTail[$SparkNum]=$((TailMin+RANDOM%TailRange))
-        SparkTTD[$SparkNum]=$((SparkSpeed[SparkNum]+1))
-      fi
-      Loc=$((SparkY[SparkNum]*SizeX+SparkX[SparkNum]))
-      if ! ((--SparkTTD[SparkNum])) ; then
-        TailTTF[$Loc]=$((SparkSpeed[SparkNum]*SparkTail[SparkNum]))
-        [[ ${SparkRender[$Loc]} ]] || \
-          TailRender[$Loc]="${Glyphs[$((RANDOM%GlyphCount))]}"
-        if ((++SparkY[SparkNum]>MaxY)) ; then
-          SparkY[$SparkNum]=$((-1-RANDOM%SparkLag))
-          continue
+    Spawn=()
+    Death=()
+
+      Odd=()
+      for i in "${!Evn[@]}" ; do
+        ii=${Evn[$i]}
+        if ((ii==12 || ii==13 || ii==3)) ; then
+          read xi yi <<< "$i"
+          ((xh=xi-1 , xj=xi+1 , yh=yi-1 , yj=yi+1))
+          Odd[$xh $yh]+=1  Odd[$xi $yh]+=1  Odd[$xj $yh]+=1
+          Odd[$xh $yi]+=1  Odd[$xi $yi]+=10 Odd[$xj $yi]+=1
+          Odd[$xh $yj]+=1  Odd[$xi $yj]+=1  Odd[$xj $yj]+=1
+          ((ii==3 && xi>=0 && xi<SizeX && yi>=0 && yi<SizeY)) && \
+            Spawn+=("${PosCache[$i]:="$(tput cup $yi $xi)"}")
+        elif ((ii>=10)) ; then
+          read xi yi <<< "$i"
+          ((xi>=0 && xi<SizeX && yi>=0 && yi<SizeY)) && \
+            Death+=("${PosCache[$i]:="$(tput cup $yi $xi)"}")
         fi
-        Loc=$((SparkY[SparkNum]*SizeX+SparkX[SparkNum]))
-        SparkTTD[$SparkNum]=${SparkSpeed[$SparkNum]}
-      fi
-      [[ ${SparkRender[$Loc]} ]] && continue
-      [[ ${PosCache[$Loc]} ]] || PosCache[$Loc]=$(tput cup ${SparkY[$SparkNum]} ${SparkX[$SparkNum]})
-      SparkRender[$Loc]="${Glyphs[$((RANDOM%GlyphCount))]}"
+      done
+    
+    for i in "${!Spawn[@]}" ; do
+      printf %s%s "${Spawn[$i]}" "@"
+    done
+    for i in "${!Death[@]}" ; do
+      printf %s%s "${Death[$i]}" " "
     done
     
-    printf %s "$TailColor"
-    for Loc in "${!TailRender[@]}" ; do
-      [[ ${SparkRender[$Loc]} ]] && continue
-      printf %s%s "${PosCache[$Loc]}"  "${TailRender[$Loc]}"
-    done
-    printf %s "$SparkColor"
-    for Loc in "${!SparkRender[@]}" ; do
-      printf %s%s "${PosCache[$Loc]}" "${SparkRender[$Loc]}"
-    done
+    ((dbg)) && Debug declare -p Spawn Death Evn Odd
+    ((dbg)) && Debug -p
     
-    ((Delay)) && for ((i=Delay;i>=0;i--)) ; do : ; done
+    ((dbg)) || read -s -n1
     
+    Evn=()
+    for i in "${!Odd[@]}" ; do
+      Evn[$i]="${Odd[$i]}"
+    done
+
   done
 }
 
-Rain
+Life
